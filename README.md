@@ -45,13 +45,12 @@ No ML/DL required.
 ---
 
 ## 📂 Project Structure  
-📁 your-repo/ /n
-│── app.py /n
-│── requirements.txt /n
-│── README.md /n
-│── LICENSE /n
-└── sample_images/ /n
-
+📁 your-repo/ <br>
+│── app.py <br>
+│── requirements.txt <br>
+│── README.md <br>
+│── LICENSE <br>
+└── sample_images/ <br>
 
 ---
 
