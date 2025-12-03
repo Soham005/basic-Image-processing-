@@ -45,3 +45,20 @@ No ML/DL required.
 ---
 
 ## 📂 Project Structure  
+📁 your-repo/
+│── app.py
+│── requirements.txt
+│── README.md
+│── LICENSE
+└── sample_images/
+
+
+---
+
+## 📦 Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/your-username/your-repo-name.git
+cd your-repo-name
