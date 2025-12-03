@@ -3,59 +3,80 @@ import cv2
 import numpy as np
 from PIL import Image
 
-st.set_page_config(page_title="Interactive Image Processing", layout="wide")
 
 # ---------- Utility functions ----------
 
 def load_image_bgr(uploaded_file):
+    """Load uploaded image as OpenCV BGR image."""
     image = Image.open(uploaded_file).convert("RGB")
     img_rgb = np.array(image)
     img_bgr = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
     return img_bgr
 
+
 def show_image_bgr(img_bgr, caption=None):
+    """Display a BGR image in Streamlit as RGB."""
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
     st.image(img_rgb, caption=caption, use_column_width=True)
 
+
 def to_grayscale(img_bgr):
-    return cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+    return gray
+
 
 def get_properties(img_bgr):
     h, w = img_bgr.shape[:2]
     channels = img_bgr.shape[2] if len(img_bgr.shape) == 3 else 1
-    return {
+    props = {
         "Width": w,
         "Height": h,
         "Channels": channels,
         "Shape": img_bgr.shape,
-        "Data Type": str(img_bgr.dtype),
-        "Total Pixels": img_bgr.size
+        "Data type": str(img_bgr.dtype),
+        "Total pixels": img_bgr.size
     }
+    return props
+
 
 def rotate_image(img_bgr, angle):
-    mapping = {90: cv2.ROTATE_90_CLOCKWISE, 180: cv2.ROTATE_180, 270: cv2.ROTATE_90_COUNTERCLOCKWISE}
-    return cv2.rotate(img_bgr, mapping.get(angle, None))
+    if angle == 90:
+        return cv2.rotate(img_bgr, cv2.ROTATE_90_CLOCKWISE)
+    elif angle == 180:
+        return cv2.rotate(img_bgr, cv2.ROTATE_180)
+    elif angle == 270:
+        return cv2.rotate(img_bgr, cv2.ROTATE_90_COUNTERCLOCKWISE)
+    else:
+        return img_bgr
+
 
 def mirror_image(img_bgr):
-    return cv2.flip(img_bgr, 1)
+    return cv2.flip(img_bgr, 1)  # horizontal flip
+
 
 def make_grid(img_bgr, rows=4, cols=4):
+    """Make a grid over the image (4x4 = 16 cells)."""
     h, w = img_bgr.shape[:2]
     cell_h = h // rows
     cell_w = w // cols
-    grid_img = img_bgr.copy()
 
+    grid_img = img_bgr.copy()
+    
+    # Horizontal lines
     for r in range(1, rows):
         y = r * cell_h
         cv2.line(grid_img, (0, y), (w, y), (0, 255, 0), 1)
 
+    # Vertical lines
     for c in range(1, cols):
         x = c * cell_w
         cv2.line(grid_img, (x, 0), (x, h), (0, 255, 0), 1)
 
     return grid_img
 
+
 def detect_objects(img_bgr, min_area=500):
+    """Detect objects without DL using edge detection + contours."""
     gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(gray, (5, 5), 0)
     edges = cv2.Canny(blur, 50, 150)
@@ -66,111 +87,119 @@ def detect_objects(img_bgr, min_area=500):
     count = 0
 
     for c in contours:
-        if cv2.contourArea(c) > min_area:
+        area = cv2.contourArea(c)
+        if area > min_area:
             x, y, w, h = cv2.boundingRect(c)
-            cv2.rectangle(obj_img, (x, y), (x + w), (y + h), (0, 255, 0), 2)
+            cv2.rectangle(obj_img, (x, y), (x + w, y + h), (0, 255, 0), 2)
             count += 1
 
     return obj_img, count
 
 
-# ---------- UI Header ----------
-st.title("🧠📷 Interactive Image Processing App")
-st.markdown("Perform all basic image processing operations interactively.")
+# ---------- Streamlit App ----------
 
+st.title("Basic Image Processing App 🧠📷")
+st.write("Practical 1 – Deep Learning (Basic Image Processing)")
 
-# ---------- File Upload ----------
-uploaded_file = st.file_uploader("📤 Upload JPG, JPEG or PNG", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("Upload a JPG image", type=["jpg", "jpeg", "png"])
 
-if uploaded_file:
-
+if uploaded_file is not None:
+    # Load image as BGR (OpenCV)
     img_bgr = load_image_bgr(uploaded_file)
 
-    # Tabs layout
+    # Create tabs for each operation
     tabs = st.tabs([
-        "📸 Show Image",
-        "⚫ Grayscale",
-        "📐 Properties",
-        "🔄 Rotate",
-        "🪞 Mirror",
-        "🔳 Grid",
-        "🕵️ Object Detection",
-        "✨ All-in-One"
+        "1) Show Image",
+        "2) Color to Black & White",
+        "3) Properties",
+        "4) Rotate Image",
+        "5) Mirror Image",
+        "6) Make Small Grid",
+        "7) Find Objects (No DL)",
+        "8) Select All Options"
     ])
 
-    # 1 - Original Image
+    # 1) Show image
     with tabs[0]:
-        st.header("Original Image")
-        show_image_bgr(img_bgr)
+        st.subheader("Original Image")
+        show_image_bgr(img_bgr, caption="Original Image")
 
-    # 2 - Grayscale
+    # 2) Grayscale
     with tabs[1]:
-        st.header("Black & White Conversion")
+        st.subheader("Black & White (Grayscale)")
         gray = to_grayscale(img_bgr)
-        st.image(gray, caption="Grayscale", clamp=True, use_column_width=True)
+        st.image(gray, caption="Grayscale Image", use_column_width=True, clamp=True)
 
-    # 3 - Properties
+    # 3) Properties
     with tabs[2]:
-        st.header("Image Properties")
+        st.subheader("Image Properties")
         props = get_properties(img_bgr)
         for k, v in props.items():
             st.write(f"**{k}:** {v}")
 
-    # 4 - Rotate
+    # 4) Rotation
     with tabs[3]:
-        st.header("Rotate Image")
-        angle = st.radio("Select rotation angle:", [90, 180, 270], horizontal=True)
+        st.subheader("Rotate the Image")
+        angle = st.radio("Select rotation angle:", [90, 180, 270], index=0, horizontal=True)
         rotated = rotate_image(img_bgr, angle)
-        show_image_bgr(rotated, f"Rotated {angle}°")
+        show_image_bgr(rotated, caption=f"Rotated {angle} degrees")
 
-    # 5 - Mirror
+    # 5) Mirror
     with tabs[4]:
-        st.header("Mirror Image (Horizontal Flip)")
+        st.subheader("Mirror Image (Horizontal Flip)")
         mirrored = mirror_image(img_bgr)
-        show_image_bgr(mirrored, "Mirrored Image")
+        show_image_bgr(mirrored, caption="Mirror Image")
 
-    # 6 - Grid
+    # 6) Grid
     with tabs[5]:
-        st.header("4×4 Grid on Image")
-        grid = make_grid(img_bgr, 4, 4)
-        show_image_bgr(grid, "Image with Grid")
+        st.subheader("Grid on the Image (4x4 = 16 cells)")
+        grid_img = make_grid(img_bgr, rows=4, cols=4)
+        show_image_bgr(grid_img, caption="Image with 4x4 Grid")
 
-    # 7 - Object Detection
+    # 7) Object Detection
     with tabs[6]:
-        st.header("Object Detection (No Deep Learning)")
-        min_area = st.slider("Minimum Object Area", 100, 5000, 500)
+        st.subheader("Object Detection (Edge + Contours)")
+        
+        min_area = st.slider("Minimum area for object detection:", 100, 5000, 500)
+
         obj_img, count = detect_objects(img_bgr, min_area)
-        st.write(f"**Detected objects:** {count}")
-        show_image_bgr(obj_img, "Objects Detected")
+        st.write(f"**Approximate number of detected objects:** {count}")
+        show_image_bgr(obj_img, caption="Detected Objects (Bounding Boxes)")
 
-    # 8 - All Operations
+    # 8) Select All
     with tabs[7]:
-        st.header("All Operations Combined")
-        col1, col2 = st.columns(2)
+        st.subheader("All Operations Combined")
 
+        st.write("### Original")
+        show_image_bgr(img_bgr)
+
+        st.write("### Black & White")
+        st.image(to_grayscale(img_bgr), use_column_width=True, clamp=True)
+
+        st.write("### Properties")
+        props = get_properties(img_bgr)
+        for k, v in props.items():
+            st.write(f"**{k}:** {v}")
+
+        st.write("### Rotated 90°, 180°, 270°")
+        col1, col2, col3 = st.columns(3)
         with col1:
-            st.subheader("Original")
-            show_image_bgr(img_bgr)
-
-            st.subheader("Grayscale")
-            st.image(to_grayscale(img_bgr), clamp=True)
-
-            st.subheader("Grid (4×4)")
-            show_image_bgr(make_grid(img_bgr), "Grid")
-
+            show_image_bgr(rotate_image(img_bgr, 90), caption="90°")
         with col2:
-            st.subheader("Rotation (90/180/270)")
-            show_image_bgr(rotate_image(img_bgr, 90), "90°")
-            show_image_bgr(rotate_image(img_bgr, 180), "180°")
-            show_image_bgr(rotate_image(img_bgr, 270), "270°")
+            show_image_bgr(rotate_image(img_bgr, 180), caption="180°")
+        with col3:
+            show_image_bgr(rotate_image(img_bgr, 270), caption="270°")
 
-            st.subheader("Mirror Image")
-            show_image_bgr(mirror_image(img_bgr))
+        st.write("### Mirror Image")
+        show_image_bgr(mirror_image(img_bgr), caption="Mirror Image")
 
-        st.subheader("Object Detection")
+        st.write("### Grid (4x4)")
+        show_image_bgr(make_grid(img_bgr, 4, 4), caption="4x4 Grid")
+
+        st.write("### Object Detection")
         obj_img_all, count_all = detect_objects(img_bgr)
         st.write(f"**Objects detected:** {count_all}")
-        show_image_bgr(obj_img_all)
+        show_image_bgr(obj_img_all, caption="Detected Objects")
 
 else:
-    st.info("Please upload an image to begin.")
+    st.info("👆 Please upload a JPG / JPEG / PNG image to begin.")
